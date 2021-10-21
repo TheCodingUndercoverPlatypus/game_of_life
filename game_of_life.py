@@ -1,50 +1,59 @@
-import pygame as p
-import sys
-import random
+import pygame
+import numpy as np
 
+col_about_to_die = (200, 200, 225)
+col_alive = (255, 255, 215)
+col_background = (10, 10, 40)
+col_grid = (30, 30, 60)
 
-width = height = 400
-dimension = 10
-sq_size = height // dimension
-max_fps = 15
+def update(surface, cur, sz):
+    nxt = np.zeros((cur.shape[0], cur.shape[1]))
 
+    for r, c in np.ndindex(cur.shape):
+        num_alive = np.sum(cur[r-1:r+2, c-1:c+2]) - cur[r, c]
 
-def main():
-    p.init()
-    screen = p.display.set_mode((width, height))
-    clock = p.time.Clock()
-    screen.fill(p.Color("black"))
+        if cur[r, c] == 1 and num_alive < 2 or num_alive > 3:
+            col = col_about_to_die
+        elif (cur[r, c] == 1 and 2 <= num_alive <= 3) or (cur[r, c] == 0 and num_alive == 3):
+            nxt[r, c] = 1
+            col = col_alive
 
-    running = True
-    while running:
-        for e in p.event.get():
-            if e.type == p.QUIT:
-                p.quit()
-                sys.exit()
+        col = col if cur[r, c] == 1 else col_background
+        pygame.draw.rect(surface, col, (c*sz, r*sz, sz-1, sz-1))
 
+    return nxt
 
+def init(dimx, dimy):
+    cells = np.zeros((dimy, dimx))
+    pattern = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0],
+                        [1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]);
+    pos = (3,3)
+    cells[pos[0]:pos[0]+pattern.shape[0], pos[1]:pos[1]+pattern.shape[1]] = pattern
+    return cells
 
+def main(dimx, dimy, cellsize):
+    pygame.init()
+    surface = pygame.display.set_mode((dimx * cellsize, dimy * cellsize))
+    pygame.display.set_caption("John Conway's Game of Life")
 
-        draw_board(screen)
-        clock.tick(max_fps)
-        p.display.flip()
+    cells = init(dimx, dimy)
 
-def draw_game_state(screen):
-    draw_board(screen)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
 
-
-def draw_board(screen):
-    color = 'white'
-    for r in range(20):
-        for c in range(20):
-            l = random.randint(0,1000)
-            if l == 4:
-                p.draw.rect(screen, color, p.Rect(c*20, r*20, 20, 20))
-
-
+        surface.fill(col_grid)
+        cells = update(surface, cells, cellsize)
+        pygame.display.update()
 
 if __name__ == "__main__":
-    main()
-
-
-main()
+    main(120, 90, 8)
